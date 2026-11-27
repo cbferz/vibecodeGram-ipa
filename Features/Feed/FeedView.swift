@@ -11,6 +11,8 @@ struct FeedView: View {
     @State private var showingNotifications = false
     @State private var showingSearch = false
     @State private var selectedCommentPost: APIPost?
+    @State private var selectedReportPost: APIPost?
+    @State private var postToBlock: APIPost?
     let user: APIUser
     let onLogout: () -> Void
 
@@ -48,7 +50,9 @@ struct FeedView: View {
                                 post: post,
                                 onLike: { Task { await model.toggleLike(for: post) } },
                                 onComments: { selectedCommentPost = post },
-                                onSave: { Task { await model.toggleSaved(for: post) } }
+                                onSave: { Task { await model.toggleSaved(for: post) } },
+                                onReport: { selectedReportPost = post },
+                                onBlock: { postToBlock = post }
                             )
                         }
                     }
@@ -132,6 +136,33 @@ struct FeedView: View {
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(item: $selectedReportPost) { post in
+                ReportPostSheet { reason, details in
+                    let success = await model.reportPost(postID: post.id, reason: reason, details: details)
+                    if success { selectedReportPost = nil }
+                    return success
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .confirmationDialog(
+                "Заблокировать @\(postToBlock?.username ?? "пользователя")?",
+                isPresented: Binding(
+                    get: { postToBlock != nil },
+                    set: { if !$0 { postToBlock = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Заблокировать", role: .destructive) {
+                    if let post = postToBlock {
+                        Task { await model.blockUser(userID: post.authorId) }
+                    }
+                    postToBlock = nil
+                }
+                Button("Отмена", role: .cancel) { postToBlock = nil }
+            } message: {
+                Text("Публикации этого пользователя больше не будут отображаться.")
+            }
             .alert("Не удалось выполнить действие", isPresented: Binding(
                 get: { model.errorMessage != nil },
                 set: { if !$0 { model.errorMessage = nil } }
@@ -152,6 +183,8 @@ private struct FeedPostCard: View {
     let onLike: () -> Void
     let onComments: () -> Void
     let onSave: () -> Void
+    let onReport: () -> Void
+    let onBlock: () -> Void
 
     var body: some View {
         GlassSurface(cornerRadius: 22) {
@@ -172,6 +205,19 @@ private struct FeedPostCard: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
+                    Menu {
+                        Button(action: onReport) {
+                            Label("Пожаловаться", systemImage: "flag")
+                        }
+                        Button(role: .destructive, action: onBlock) {
+                            Label("Заблокировать автора", systemImage: "hand.raised")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+                    }
+                    .accessibilityLabel("Действия с публикацией")
                 }
 
                 if !post.body.isEmpty {
@@ -359,6 +405,69 @@ private struct CreatePostSheet: View {
     }
 }
 
+
+@MainActor
+private struct ReportPostSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var reason = "spam"
+    @State private var details = ""
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    let onSubmit: (String, String) async -> Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Причина жалобы") {
+                    Picker("Причина", selection: $reason) {
+                        Text("Спам").tag("spam")
+                        Text("Домогательства").tag("harassment")
+                        Text("Насилие").tag("violence")
+                        Text("Дезинформация").tag("misinformation")
+                        Text("Нарушение авторских прав").tag("copyright")
+                        Text("Другое").tag("other")
+                    }
+                }
+                Section("Дополнительная информация") {
+                    TextEditor(text: $details)
+                        .frame(minHeight: 100)
+                    Text("\(details.utf8.count) / 1000 байт")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                }
+            }
+            .navigationTitle("Пожаловаться")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Отправить") {
+                        Task {
+                            isSubmitting = true
+                            let success = await onSubmit(reason, details)
+                            isSubmitting = false
+                            if success { dismiss() }
+                            else { errorMessage = "Не удалось отправить жалобу." }
+                        }
+                    }
+                    .disabled(isSubmitting || details.utf8.count > 1000)
+                }
+            }
+            .overlay {
+                if isSubmitting {
+                    ProgressView("Отправка…")
+                        .padding(20)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                }
+            }
+        }
+    }
+}
 
 @MainActor
 private struct AuthenticatedVideoPreview: View {
