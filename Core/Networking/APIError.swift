@@ -29,3 +29,8 @@ enum APIError: Error, LocalizedError, Sendable {
         return false
     }
 }
+
+
+extension Notification.Name {
+    static let vibecodeGramUnauthorized = Notification.Name("vibecodeGramUnauthorized")
+}
