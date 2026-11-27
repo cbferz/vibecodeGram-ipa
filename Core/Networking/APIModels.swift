@@ -150,3 +150,32 @@ struct APIPerson: Decodable, Sendable, Identifiable {
 struct FollowResponse: Decodable, Sendable {
     let following: Bool
 }
+
+struct APIComment: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let authorId: Int64
+    let username: String
+    let displayName: String
+    let body: String
+    let createdAt: String
+}
+
+struct CreateCommentResponse: Decodable, Sendable {
+    let created: Bool
+}
+
+struct APINotification: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let actorId: Int64
+    let username: String
+    let displayName: String
+    let kind: String
+    let read: Bool
+    let createdAt: String
+    let postId: Int64?
+    let storyId: Int64?
+}
+
+struct MarkNotificationsReadResponse: Decodable, Sendable {
+    let read: Bool
+}
