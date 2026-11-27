@@ -54,6 +54,21 @@ struct CreatePostResponse: Decodable, Sendable {
     let saved: Bool
 }
 
+struct CreateVideoPostResponse: Decodable, Sendable {
+    let id: Int64
+    let authorId: Int64
+    let body: String
+    let tag: String
+    let createdAt: String
+    let likes: Int64
+    let liked: Bool
+    let saved: Bool
+    let mediaType: String
+    let mediaSize: Int64
+    let videoUrl: String
+    let contentKind: String
+}
+
 struct LikeResponse: Decodable, Sendable {
     let liked: Bool
     let likes: Int64
