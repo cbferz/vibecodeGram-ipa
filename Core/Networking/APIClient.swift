@@ -52,6 +52,16 @@ struct APIClient: Sendable {
         return try await send(path: "/v1/posts?sort=\(sort)", method: "GET", token: token)
     }
 
+    func hidePost(postID: Int64, hidden: Bool, token: String) async throws {
+        let method = hidden ? "POST" : "DELETE"
+        let _: HidePostResponse = try await send(
+            path: "/v1/posts/\(postID)/hide",
+            method: method,
+            body: EmptyRequest(),
+            token: token
+        )
+    }
+
     func toggleLike(postID: Int64, token: String) async throws -> LikeResponse {
         try await send(
             path: "/v1/posts/\(postID)/like",
