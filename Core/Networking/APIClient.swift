@@ -157,6 +157,7 @@ struct APIClient: Sendable {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+        notifyUnauthorizedIfNeeded(statusCode: http.statusCode, token: token)
         guard (200..<300).contains(http.statusCode) else {
             let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
             throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
@@ -488,6 +489,7 @@ struct APIClient: Sendable {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+        notifyUnauthorizedIfNeeded(statusCode: http.statusCode, token: token)
         guard (200..<300).contains(http.statusCode) else {
             let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
             throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
@@ -517,6 +519,7 @@ struct APIClient: Sendable {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+        notifyUnauthorizedIfNeeded(statusCode: http.statusCode, token: token)
         guard (200..<300).contains(http.statusCode) else {
             let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
             throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
@@ -534,6 +537,11 @@ struct APIClient: Sendable {
         data.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
         data.append(value.data(using: .utf8)!)
         data.append("\r\n".data(using: .utf8)!)
+    }
+
+    private func notifyUnauthorizedIfNeeded(statusCode: Int, token: String?) {
+        guard statusCode == 401, let token else { return }
+        NotificationCenter.default.post(name: .vibecodeGramUnauthorized, object: token)
     }
 
     private func send<Response: Decodable>(
@@ -575,6 +583,7 @@ struct APIClient: Sendable {
             throw APIError.invalidResponse
         }
 
+        notifyUnauthorizedIfNeeded(statusCode: http.statusCode, token: token)
         guard (200..<300).contains(http.statusCode) else {
             let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
             throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
