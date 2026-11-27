@@ -183,3 +183,44 @@ struct MarkNotificationsReadResponse: Decodable, Sendable {
 struct CreateCommentRequest: Encodable, Sendable {
     let body: String
 }
+
+struct APIConversation: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let kind: String
+    let title: String
+    let createdAt: String
+    let lastMessage: String
+    let lastMessageAt: String?
+}
+
+struct APIMessage: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let senderId: Int64
+    let username: String
+    let body: String
+    let createdAt: String
+}
+
+struct CreateConversationRequest: Encodable, Sendable {
+    let kind: String
+    let title: String
+    let memberIds: [Int64]
+}
+
+struct CreateConversationResponse: Decodable, Sendable {
+    let id: Int64
+    let kind: String
+    let title: String
+}
+
+struct SendMessageRequest: Encodable, Sendable {
+    let body: String
+}
+
+struct SendMessageResponse: Decodable, Sendable {
+    let id: Int64
+    let conversationId: Int64
+    let senderId: Int64
+    let body: String
+    let createdAt: String
+}
