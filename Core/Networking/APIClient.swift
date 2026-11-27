@@ -44,6 +44,51 @@ struct APIClient: Sendable {
         )
     }
 
+    func posts(sort: String, token: String) async throws -> [APIPost] {
+        let allowedSorts = ["latest", "popular", "saved", "hidden", "videos"]
+        guard allowedSorts.contains(sort) else {
+            throw APIError.httpStatus(400, "Unsupported feed sort.")
+        }
+        return try await send(path: "/v1/posts?sort=\(sort)", method: "GET", token: token)
+    }
+
+    func toggleLike(postID: Int64, token: String) async throws -> LikeResponse {
+        try await send(
+            path: "/v1/posts/\(postID)/like",
+            method: "POST",
+            body: EmptyRequest(),
+            token: token
+        )
+    }
+
+    func setSaved(postID: Int64, saved: Bool, token: String) async throws {
+        let method = saved ? "PUT" : "DELETE"
+        if saved {
+            let _: SavedResponse = try await send(
+                path: "/v1/posts/\(postID)/save",
+                method: method,
+                body: EmptyRequest(),
+                token: token
+            )
+        } else {
+            let _: SavedResponse = try await send(
+                path: "/v1/posts/\(postID)/save",
+                method: method,
+                token: token
+            )
+        }
+    }
+
+    func createTextPost(body: String, tag: String, token: String) async throws {
+        let payload = CreatePostRequest(body: body, tag: tag)
+        let _: APIPost = try await send(
+            path: "/v1/posts",
+            method: "POST",
+            body: payload,
+            token: token
+        )
+    }
+
     private func send<Response: Decodable>(
         path: String,
         method: String,
