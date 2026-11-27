@@ -298,7 +298,7 @@ struct AIModelsResponse: Decodable, Sendable {
     let provider: String
 }
 
-struct AIMessage: Codable, Sendable, Identifiable {
+struct AIMessage: Encodable, Sendable, Identifiable {
     let id: UUID
     let role: String
     let content: String
@@ -307,6 +307,11 @@ struct AIMessage: Codable, Sendable, Identifiable {
         self.id = UUID()
         self.role = role
         self.content = content
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case role
+        case content
     }
 }
 
