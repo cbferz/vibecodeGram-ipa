@@ -19,6 +19,7 @@ struct vibecodeGramApp: App {
 @MainActor
 private struct AppRootView: View {
     @EnvironmentObject private var session: SessionStore
+    @AppStorage("vibecodeGram.appearance") private var appearance = "system"
     let api: APIClient
 
     var body: some View {
@@ -39,7 +40,7 @@ private struct AppRootView: View {
             }
         }
         .animation(.snappy(duration: 0.25), value: session.isRestoring)
-        .preferredColorScheme(nil)
+        .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
     }
 }
 
