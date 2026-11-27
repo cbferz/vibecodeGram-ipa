@@ -19,6 +19,11 @@ struct SettingsView: View {
             List {
                 Section("Аккаунт и безопасность") {
                     NavigationLink {
+                        DeviceAccountsView(api: api, session: session)
+                    } label: {
+                        Label("Аккаунты устройства", systemImage: "person.2")
+                    }
+                    NavigationLink {
                         SessionsSettingsView(model: model)
                     } label: {
                         Label("Активные сессии", systemImage: "iphone.and.arrow.forward")
