@@ -5,8 +5,12 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model: SettingsViewModel
     @AppStorage("vibecodeGram.appearance") private var appearance = "system"
+    private let api: APIClient
+    private let session: SessionStore
 
     init(api: APIClient, session: SessionStore) {
+        self.api = api
+        self.session = session
         _model = StateObject(wrappedValue: SettingsViewModel(api: api, session: session))
     }
 
@@ -36,6 +40,14 @@ struct SettingsView: View {
                         BadgesSettingsView(model: model)
                     } label: {
                         Label("Значки и бейджи", systemImage: "rosette")
+                    }
+                }
+
+                Section("Инструменты") {
+                    NavigationLink {
+                        AIToolsView(api: api, session: session)
+                    } label: {
+                        Label("ИИ-помощник", systemImage: "sparkles")
                     }
                 }
 
