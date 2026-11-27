@@ -128,6 +128,16 @@ final class FeedViewModel: ObservableObject {
         }
     }
 
+    func hidePost(_ post: APIPost) async {
+        guard let token = session.accessToken else { return }
+        do {
+            try await api.hidePost(postID: post.id, hidden: true, token: token)
+            posts.removeAll { $0.id == post.id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func blockUser(userID: Int64) async {
         guard let token = session.accessToken else { return }
         do {
