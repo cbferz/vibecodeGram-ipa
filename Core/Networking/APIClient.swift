@@ -237,6 +237,53 @@ struct APIClient: Sendable {
         )
     }
 
+    func conversations(token: String) async throws -> [APIConversation] {
+        try await send(path: "/v1/conversations", method: "GET", token: token)
+    }
+
+    func createConversation(kind: String, title: String, memberIDs: [Int64], token: String) async throws -> APIConversation {
+        let payload = CreateConversationRequest(kind: kind, title: title, memberIds: memberIDs)
+        let created: CreateConversationResponse = try await send(
+            path: "/v1/conversations",
+            method: "POST",
+            body: payload,
+            token: token
+        )
+        return APIConversation(
+            id: created.id,
+            kind: created.kind,
+            title: created.title,
+            createdAt: "",
+            lastMessage: "",
+            lastMessageAt: nil
+        )
+    }
+
+    func messages(conversationID: Int64, limit: Int = 50, before: Int64? = nil, token: String) async throws -> [APIMessage] {
+        var components = URLComponents()
+        components.path = "/v1/conversations/\\(conversationID)/messages"
+        var items = [URLQueryItem(name: "limit", value: String(min(max(limit, 1), 100)))]
+        if let before {
+            items.append(URLQueryItem(name: "before", value: String(before)))
+        }
+        components.queryItems = items
+        guard let path = components.string else { throw APIError.invalidBaseURL }
+        return try await send(path: path, method: "GET", token: token)
+    }
+
+    func sendMessage(conversationID: Int64, body: String, token: String) async throws -> SendMessageResponse {
+        let cleanBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanBody.isEmpty, cleanBody.utf8.count <= 10_000 else {
+            throw APIError.httpStatus(400, "Message must contain 1–10000 bytes.")
+        }
+        return try await send(
+            path: "/v1/conversations/\\(conversationID)/messages",
+            method: "POST",
+            body: SendMessageRequest(body: cleanBody),
+            token: token
+        )
+    }
+
     func searchUsers(query: String, token: String) async throws -> [APIPerson] {
         var components = URLComponents()
         components.path = "/v1/users/search"
