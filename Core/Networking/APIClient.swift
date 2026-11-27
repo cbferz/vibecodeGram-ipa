@@ -89,6 +89,73 @@ struct APIClient: Sendable {
         )
     }
 
+    func profile(userID: Int64, token: String) async throws -> APIProfile {
+        try await send(path: "/v1/users/\\(userID)", method: "GET", token: token)
+    }
+
+    func userPosts(userID: Int64, kind: String, token: String) async throws -> [APIPost] {
+        guard ["posts", "videos", "vibees"].contains(kind) else {
+            throw APIError.httpStatus(400, "Unsupported profile media kind.")
+        }
+        return try await send(
+            path: "/v1/users/\\(userID)/posts?kind=\\(kind)",
+            method: "GET",
+            token: token
+        )
+    }
+
+    func updateProfile(
+        displayName: String,
+        bio: String,
+        avatarUrl: String,
+        coverUrl: String,
+        website: String,
+        location: String,
+        token: String
+    ) async throws {
+        let payload = UpdateProfileRequest(
+            displayName: displayName,
+            bio: bio,
+            avatarUrl: avatarUrl,
+            coverUrl: coverUrl,
+            website: website,
+            location: location
+        )
+        let _: UpdateProfileResponse = try await send(
+            path: "/v1/me/profile",
+            method: "PUT",
+            body: payload,
+            token: token
+        )
+    }
+
+    func followUser(userID: Int64, follow: Bool, token: String) async throws {
+        let method = follow ? "POST" : "DELETE"
+        if follow {
+            let _: FollowResponse = try await send(
+                path: "/v1/users/\\(userID)/follow",
+                method: method,
+                body: EmptyRequest(),
+                token: token
+            )
+        } else {
+            let _: FollowResponse = try await send(
+                path: "/v1/users/\\(userID)/follow",
+                method: method,
+                token: token
+            )
+        }
+    }
+
+    func followers(userID: Int64, following: Bool, token: String) async throws -> [APIPerson] {
+        let suffix = following ? "following" : "followers"
+        return try await send(
+            path: "/v1/users/\\(userID)/\\(suffix)",
+            method: "GET",
+            token: token
+        )
+    }
+
     func stories(token: String) async throws -> [APIStory] {
         try await send(path: "/v1/stories", method: "GET", token: token)
     }
