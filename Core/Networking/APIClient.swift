@@ -237,6 +237,43 @@ struct APIClient: Sendable {
         )
     }
 
+    func aiModels(token: String) async throws -> [AIModel] {
+        let response: AIModelsResponse = try await send(path: "/v1/ai/models", method: "GET", token: token)
+        return response.data
+    }
+
+    func aiChat(messages: [AIMessage], model: String, token: String) async throws -> AIChatResponse {
+        guard !messages.isEmpty, messages.count <= 24,
+              messages.last?.role == "user",
+              messages.allSatisfy({ ["user", "assistant"].contains($0.role) }),
+              messages.reduce(0, { $0 + $1.content.utf8.count }) <= 48_000,
+              messages.allSatisfy({ !$0.content.isEmpty && $0.content.utf8.count <= 16_000 }) else {
+            throw APIError.httpStatus(400, "AI conversation exceeds server input limits.")
+        }
+        let payload = AIChatRequest(messages: messages, model: model, temperature: 0.7, maxTokens: 1024)
+        return try await send(path: "/v1/ai/chat", method: "POST", body: payload, token: token)
+    }
+
+    func aiTool(
+        tool: String,
+        text: String,
+        context: String = "",
+        targetLanguage: String = "",
+        token: String
+    ) async throws -> AIChatResponse {
+        let allowed = ["translate", "summarize", "rewrite", "grammar", "post", "smart_reply", "context_search"]
+        guard allowed.contains(tool) else {
+            throw APIError.httpStatus(404, "Unknown AI tool.")
+        }
+        let payload = AIToolRequest(text: text, context: context, targetLanguage: targetLanguage)
+        return try await send(
+            path: "/v1/ai/tools/\\(tool)",
+            method: "POST",
+            body: payload,
+            token: token
+        )
+    }
+
     func sessions(token: String) async throws -> [APISession] {
         let response: SessionListResponse = try await send(path: "/v1/sessions", method: "GET", token: token)
         return response.sessions
