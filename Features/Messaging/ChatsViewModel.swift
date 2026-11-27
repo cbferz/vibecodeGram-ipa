@@ -27,6 +27,33 @@ final class ChatsViewModel: ObservableObject {
         }
     }
 
+    func createGroup(title: String, members: [APIPerson]) async -> APIConversation? {
+        guard let token = session.accessToken else { return nil }
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTitle.isEmpty, !members.isEmpty else { return nil }
+        do {
+            let created = try await api.createConversation(
+                kind: "group",
+                title: cleanTitle,
+                memberIDs: members.map(\.id),
+                token: token
+            )
+            await load()
+            return conversations.first(where: { $0.id == created.id })
+                ?? APIConversation(
+                    id: created.id,
+                    kind: created.kind,
+                    title: created.title,
+                    createdAt: "",
+                    lastMessage: "",
+                    lastMessageAt: nil
+                )
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     func createDirect(with person: APIPerson) async -> APIConversation? {
         guard let token = session.accessToken else { return nil }
         do {
