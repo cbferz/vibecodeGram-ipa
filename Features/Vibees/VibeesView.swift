@@ -43,7 +43,8 @@ struct VibeesView: View {
                     } else {
                         ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
-                                ForEach(Array(model.reels.enumerated()), id: \.element.id) { index, post in
+                                ForEach(model.reels.indices, id: \.self) { index in
+                                    let post = model.reels[index]
                                     VibeeCard(
                                         api: api,
                                         token: token,
