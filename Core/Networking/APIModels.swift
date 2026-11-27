@@ -62,3 +62,36 @@ struct LikeResponse: Decodable, Sendable {
 struct SavedResponse: Decodable, Sendable {
     let saved: Bool
 }
+
+struct APIStory: Decodable, Sendable, Identifiable, Equatable {
+    let id: Int64
+    let authorId: Int64
+    let username: String
+    let displayName: String
+    let caption: String
+    let mediaType: String
+    let mediaSize: Int64
+    let createdAt: String
+    let expiresAt: String
+    let viewed: Bool
+    let mediaUrl: String
+}
+
+struct CreateStoryResponse: Decodable, Sendable {
+    let id: Int64
+    let authorId: Int64
+    let caption: String
+    let mediaType: String
+    let mediaSize: Int64
+    let createdAt: String
+    let expiresAt: String
+    let mediaUrl: String
+}
+
+struct StoryViewResponse: Decodable, Sendable {
+    let viewed: Bool
+}
+
+struct StoryDeleteResponse: Decodable, Sendable {
+    let deleted: Bool
+}
