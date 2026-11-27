@@ -286,3 +286,45 @@ struct APIBadge: Decodable, Sendable, Identifiable {
 struct BadgeListResponse: Decodable, Sendable {
     let badges: [APIBadge]
 }
+
+struct AIModel: Decodable, Sendable, Identifiable {
+    let id: String
+    var name: String { id }
+}
+
+struct AIModelsResponse: Decodable, Sendable {
+    let data: [AIModel]
+    let configuredModels: [String]
+    let provider: String
+}
+
+struct AIMessage: Codable, Sendable, Identifiable {
+    let id: UUID
+    let role: String
+    let content: String
+
+    init(role: String, content: String) {
+        self.id = UUID()
+        self.role = role
+        self.content = content
+    }
+}
+
+struct AIChatRequest: Encodable, Sendable {
+    let messages: [AIMessage]
+    let model: String
+    let temperature: Double
+    let maxTokens: Int
+}
+
+struct AIChatResponse: Decodable, Sendable {
+    let reply: String
+    let model: String
+    let provider: String
+}
+
+struct AIToolRequest: Encodable, Sendable {
+    let text: String
+    let context: String
+    let targetLanguage: String
+}
