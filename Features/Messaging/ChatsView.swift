@@ -62,12 +62,22 @@ struct ChatsView: View {
             .refreshable { await model.load() }
             .task { await model.load() }
             .sheet(isPresented: $showingNewChat) {
-                NewConversationSheet(api: api, session: session) { person in
-                    if let conversation = await model.createDirect(with: person) {
-                        selectedConversation = conversation
-                        showingNewChat = false
+                NewConversationSheet(
+                    api: api,
+                    session: session,
+                    onSelect: { person in
+                        if let conversation = await model.createDirect(with: person) {
+                            selectedConversation = conversation
+                            showingNewChat = false
+                        }
+                    },
+                    onCreateGroup: { title, members in
+                        if let conversation = await model.createGroup(title: title, members: members) {
+                            selectedConversation = conversation
+                            showingNewChat = false
+                        }
                     }
-                }
+                )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
@@ -98,23 +108,54 @@ private struct NewConversationSheet: View {
     let api: APIClient
     let session: SessionStore
     let onSelect: (APIPerson) async -> Void
+    let onCreateGroup: (String, [APIPerson]) async -> Void
     @State private var query = ""
     @State private var people: [APIPerson] = []
+    @State private var selectedPeople: [APIPerson] = []
+    @State private var groupTitle = ""
+    @State private var isGroup = false
     @State private var isSearching = false
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
-            List(people) { person in
-                Button {
-                    Task { await onSelect(person) }
-                } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(person.displayName.isEmpty ? person.username : person.displayName)
-                            .foregroundStyle(.primary)
-                        Text("@\(person.username)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            List {
+                Section {
+                    Picker("Тип диалога", selection: $isGroup) {
+                        Text("Личный").tag(false)
+                        Text("Группа").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if isGroup {
+                        TextField("Название группы", text: $groupTitle)
+                    }
+                }
+
+                Section(isGroup ? "Участники" : "Пользователи") {
+                    ForEach(people) { person in
+                        Button {
+                            if isGroup {
+                                toggleSelection(person)
+                            } else {
+                                Task { await onSelect(person) }
+                            }
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(person.displayName.isEmpty ? person.username : person.displayName)
+                                        .foregroundStyle(.primary)
+                                    Text("@\(person.username)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if selectedPeople.contains(where: { $0.id == person.id }) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -129,9 +170,27 @@ private struct NewConversationSheet: View {
                     )
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if isGroup {
+                    Button {
+                        Task { await onCreateGroup(groupTitle, selectedPeople) }
+                    } label: {
+                        Text("Создать группу · \(selectedPeople.count)")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                        groupTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || groupTitle.utf8.count > 100
+                        || selectedPeople.isEmpty
+                    )
+                    .padding()
+                    .background(.bar)
+                }
+            }
             .searchable(text: $query, prompt: "Имя пользователя")
             .onSubmit(of: .search) { Task { await search() } }
-            .navigationTitle("Новый диалог")
+            .navigationTitle(isGroup ? "Новая группа" : "Новый диалог")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -150,6 +209,14 @@ private struct NewConversationSheet: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+        }
+    }
+
+    private func toggleSelection(_ person: APIPerson) {
+        if let index = selectedPeople.firstIndex(where: { $0.id == person.id }) {
+            selectedPeople.remove(at: index)
+        } else {
+            selectedPeople.append(person)
         }
     }
 
