@@ -21,6 +21,9 @@ targets:
       - path: App
       - path: Core
       - path: Features
+    resources:
+      - path: Assets.xcassets
+      - path: Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vibecodegram.ios
