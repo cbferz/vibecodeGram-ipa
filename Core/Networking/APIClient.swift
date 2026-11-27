@@ -237,6 +237,54 @@ struct APIClient: Sendable {
         )
     }
 
+    func sessions(token: String) async throws -> [APISession] {
+        let response: SessionListResponse = try await send(path: "/v1/sessions", method: "GET", token: token)
+        return response.sessions
+    }
+
+    func revokeSession(id: String, token: String) async throws -> Bool {
+        let response: RevokeSessionResponse = try await send(
+            path: "/v1/sessions/\\(id)",
+            method: "DELETE",
+            token: token
+        )
+        return response.revoked
+    }
+
+    func blockedUsers(token: String) async throws -> [APIBlockedUser] {
+        try await send(path: "/v1/me/blocked", method: "GET", token: token)
+    }
+
+    func blockUser(userID: Int64, block: Bool, token: String) async throws -> Bool {
+        let path = "/v1/users/\\(userID)/block"
+        let response: BlockUserResponse
+        if block {
+            response = try await send(path: path, method: "POST", body: EmptyRequest(), token: token)
+        } else {
+            response = try await send(path: path, method: "DELETE", token: token)
+        }
+        return response.blocked
+    }
+
+    func reportPost(postID: Int64, reason: String, details: String, token: String) async throws {
+        let payload = CreateReportRequest(reason: reason, details: details)
+        let _: CreateReportResponse = try await send(
+            path: "/v1/posts/\\(postID)/report",
+            method: "POST",
+            body: payload,
+            token: token
+        )
+    }
+
+    func myReports(limit: Int = 50, token: String) async throws -> [APIReport] {
+        try await send(path: "/v1/me/reports?limit=\\(min(max(limit, 1), 100))", method: "GET", token: token)
+    }
+
+    func badges(token: String) async throws -> [APIBadge] {
+        let response: BadgeListResponse = try await send(path: "/v1/me/badges", method: "GET", token: token)
+        return response.badges
+    }
+
     func conversations(token: String) async throws -> [APIConversation] {
         try await send(path: "/v1/conversations", method: "GET", token: token)
     }
