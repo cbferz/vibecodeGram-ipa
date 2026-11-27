@@ -237,6 +237,22 @@ struct APIClient: Sendable {
         )
     }
 
+    func searchUsers(query: String, token: String) async throws -> [APIPerson] {
+        var components = URLComponents()
+        components.path = "/v1/users/search"
+        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        guard let path = components.string else { throw APIError.invalidBaseURL }
+        return try await send(path: path, method: "GET", token: token)
+    }
+
+    func searchPosts(query: String, token: String) async throws -> [APIPost] {
+        var components = URLComponents()
+        components.path = "/v1/posts/search"
+        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        guard let path = components.string else { throw APIError.invalidBaseURL }
+        return try await send(path: path, method: "GET", token: token)
+    }
+
     func notifications(token: String) async throws -> [APINotification] {
         try await send(path: "/v1/notifications", method: "GET", token: token)
     }
