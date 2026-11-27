@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 @MainActor
 struct ProfileView: View {
@@ -53,6 +54,10 @@ struct ProfileView: View {
                                                 Text("#\(post.tag)")
                                                     .foregroundStyle(.tint)
                                                     .font(.caption)
+                                            }
+                                            if let mediaType = post.mediaType, mediaType == "video/mp4",
+                                               let path = post.videoUrl, !path.isEmpty {
+                                                ProfileVideoPreview(api: api, token: session.accessToken ?? "", path: path)
                                             }
                                             HStack {
                                                 Label(post.likes.formatted(), systemImage: "heart")
@@ -422,5 +427,44 @@ private struct PeopleListSheet: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+}
+
+
+@MainActor
+private struct ProfileVideoPreview: View {
+    let api: APIClient
+    let token: String
+    let path: String
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player {
+                VideoPlayer(player: player)
+            } else {
+                ZStack {
+                    Color.black.opacity(0.9)
+                    ProgressView().tint(.white)
+                }
+            }
+        }
+        .frame(height: 210)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .task { await prepare() }
+        .onDisappear {
+            player?.pause()
+            player?.replaceCurrentItem(with: nil)
+            player = nil
+        }
+    }
+
+    private func prepare() async {
+        guard player == nil, !token.isEmpty, let url = api.mediaURL(for: path) else { return }
+        let asset = AVURLAsset(
+            url: url,
+            options: ["AVURLAssetHTTPHeaderFieldsKey": ["Authorization": "Bearer \(token)"]]
+        )
+        player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
     }
 }
