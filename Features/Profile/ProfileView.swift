@@ -5,6 +5,7 @@ struct ProfileView: View {
     @StateObject private var model: ProfileViewModel
     @State private var selectedKind = "posts"
     @State private var showingEditor = false
+    @State private var showingSettings = false
     @State private var selectedPeople: PeopleListKind?
     private let api: APIClient
     private let session: SessionStore
@@ -89,6 +90,14 @@ struct ProfileView: View {
                 if model.profile?.isMe == true {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .accessibilityLabel("Настройки")
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
                             showingEditor = true
                         } label: {
                             Image(systemName: "pencil")
@@ -113,6 +122,11 @@ struct ProfileView: View {
             .sheet(item: $selectedPeople) { kind in
                 PeopleListSheet(api: api, session: session, userID: model.profile?.id ?? 0, kind: kind)
                     .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(api: api, session: session)
+                    .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
             .alert("Профиль", isPresented: Binding(
