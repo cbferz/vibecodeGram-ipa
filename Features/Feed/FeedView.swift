@@ -1,4 +1,6 @@
 import SwiftUI
+import AVKit
+import UniformTypeIdentifiers
 
 @MainActor
 struct FeedView: View {
@@ -41,6 +43,8 @@ struct FeedView: View {
                     } else {
                         ForEach(model.posts) { post in
                             FeedPostCard(
+                                api: api,
+                                token: session.accessToken ?? "",
                                 post: post,
                                 onLike: { Task { await model.toggleLike(for: post) } },
                                 onComments: { selectedCommentPost = post },
@@ -98,11 +102,18 @@ struct FeedView: View {
                 }
             }
             .sheet(isPresented: $showingComposer) {
-                CreatePostSheet { body, tag in
-                    let success = await model.publish(body: body, tag: tag)
-                    if success { showingComposer = false }
-                    return success
-                }
+                CreatePostSheet(
+                    onPublish: { body, tag in
+                        let success = await model.publish(body: body, tag: tag)
+                        if success { showingComposer = false }
+                        return success
+                    },
+                    onPublishVideo: { media, body, tag in
+                        let success = await model.publishVideo(media: media, body: body, tag: tag)
+                        if success { showingComposer = false }
+                        return success
+                    }
+                )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
@@ -135,6 +146,8 @@ struct FeedView: View {
 }
 
 private struct FeedPostCard: View {
+    let api: APIClient
+    let token: String
     let post: APIPost
     let onLike: () -> Void
     let onComments: () -> Void
@@ -174,9 +187,11 @@ private struct FeedPostCard: View {
                         .foregroundStyle(.tint)
                 }
 
-                if let mediaType = post.mediaType, !mediaType.isEmpty {
+                if let mediaType = post.mediaType, mediaType == "video/mp4",
+                   let videoPath = post.videoUrl, !videoPath.isEmpty {
+                    AuthenticatedVideoPreview(api: api, token: token, path: videoPath)
                     Label(
-                        "Видеопубликация · \(ByteCountFormatter.string(fromByteCount: post.mediaSize ?? 0, countStyle: .file))",
+                        "Видео · \(ByteCountFormatter.string(fromByteCount: post.mediaSize ?? 0, countStyle: .file))",
                         systemImage: "play.rectangle"
                     )
                     .font(.caption)
@@ -220,13 +235,27 @@ private struct CreatePostSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var bodyText = ""
     @State private var tagText = ""
+    @State private var videoData: Data?
+    @State private var showingVideoImporter = false
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     let onPublish: (String, String) async -> Bool
+    let onPublishVideo: (Data, String, String) async -> Bool
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Медиа (необязательно)") {
+                    Button {
+                        showingVideoImporter = true
+                    } label: {
+                        Label("Выбрать MP4-видео", systemImage: "video")
+                    }
+                    if let videoData {
+                        Label(ByteCountFormatter.string(fromByteCount: Int64(videoData.count), countStyle: .file), systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                    }
+                }
                 Section("Текст публикации") {
                     TextEditor(text: $bodyText)
                         .frame(minHeight: 130)
@@ -248,6 +277,13 @@ private struct CreatePostSheet: View {
                     }
                 }
             }
+            .fileImporter(
+                isPresented: $showingVideoImporter,
+                allowedContentTypes: [.mpeg4Movie],
+                allowsMultipleSelection: false
+            ) { result in
+                loadVideo(result)
+            }
             .navigationTitle("Новая публикация")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -258,10 +294,13 @@ private struct CreatePostSheet: View {
                     Button("Опубликовать") {
                         Task {
                             isSubmitting = true
-                            let success = await onPublish(
-                                bodyText.trimmingCharacters(in: .whitespacesAndNewlines),
-                                normalizedTag
-                            )
+                            let cleanBody = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let success: Bool
+                            if let videoData {
+                                success = await onPublishVideo(videoData, cleanBody, normalizedTag)
+                            } else {
+                                success = await onPublish(cleanBody, normalizedTag)
+                            }
                             if !success {
                                 errorMessage = "Публикацию не удалось отправить. Проверьте текст и подключение."
                             }
@@ -273,6 +312,7 @@ private struct CreatePostSheet: View {
                         || bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || bodyText.utf8.count > 5000
                         || normalizedTag.utf8.count > 32
+                        || (videoData != nil && (videoData?.count ?? 0) > 50 * 1024 * 1024)
                     )
                 }
             }
@@ -288,5 +328,45 @@ private struct CreatePostSheet: View {
 
     private var normalizedTag: String {
         tagText.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
+    }
+}
+
+
+@MainActor
+private struct AuthenticatedVideoPreview: View {
+    let api: APIClient
+    let token: String
+    let path: String
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player {
+                VideoPlayer(player: player)
+            } else {
+                ZStack {
+                    Color.black.opacity(0.9)
+                    ProgressView().tint(.white)
+                }
+            }
+        }
+        .frame(height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .task { await prepare() }
+        .onDisappear {
+            player?.pause()
+            player?.replaceCurrentItem(with: nil)
+            player = nil
+        }
+    }
+
+    private func prepare() async {
+        guard player == nil, !token.isEmpty, let url = api.mediaURL(for: path) else { return }
+        let asset = AVURLAsset(
+            url: url,
+            options: ["AVURLAssetHTTPHeaderFieldsKey": ["Authorization": "Bearer \(token)"]]
+        )
+        let next = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+        player = next
     }
 }
