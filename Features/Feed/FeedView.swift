@@ -309,7 +309,7 @@ private struct CreatePostSheet: View {
                     }
                     .disabled(
                         isSubmitting
-                        || bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || (videoData == nil && bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         || bodyText.utf8.count > 5000
                         || normalizedTag.utf8.count > 32
                         || (videoData != nil && (videoData?.count ?? 0) > 50 * 1024 * 1024)
@@ -323,6 +323,34 @@ private struct CreatePostSheet: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
+        }
+    }
+
+    private func loadVideo(_ result: Result<[URL], Error>) {
+        do {
+            guard let url = try result.get().first else { return }
+            Task {
+                do {
+                    let data = try await Task.detached(priority: .userInitiated) {
+                        let hasAccess = url.startAccessingSecurityScopedResource()
+                        defer {
+                            if hasAccess { url.stopAccessingSecurityScopedResource() }
+                        }
+                        return try Data(contentsOf: url, options: .mappedIfSafe)
+                    }.value
+                    guard data.count >= 12, data.count <= 50 * 1024 * 1024,
+                          data.subdata(in: 4..<8) == Data("ftyp".utf8) else {
+                        errorMessage = "Выберите корректный MP4-файл размером до 50 МиБ."
+                        return
+                    }
+                    videoData = data
+                    errorMessage = nil
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
