@@ -128,6 +128,27 @@ final class FeedViewModel: ObservableObject {
         }
     }
 
+    func blockUser(userID: Int64) async {
+        guard let token = session.accessToken else { return }
+        do {
+            _ = try await api.blockUser(userID: userID, block: true, token: token)
+            posts.removeAll { $0.authorId == userID }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func reportPost(postID: Int64, reason: String, details: String) async -> Bool {
+        guard let token = session.accessToken else { return false }
+        do {
+            try await api.reportPost(postID: postID, reason: reason, details: details, token: token)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     private func update(postID: Int64, transform: (APIPost) -> APIPost) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         posts[index] = transform(posts[index])
