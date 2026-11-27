@@ -27,7 +27,7 @@ private struct AppRootView: View {
                 ProgressView("Подключение к vibecodeGram…")
                     .tint(.primary)
             } else if let user = session.user {
-                FeedView(api: api, session: session, user: user, onLogout: {
+                AuthenticatedTabView(api: api, session: session, user: user, onLogout: {
                     Task { await session.logout(using: api) }
                 })
             } else if session.accessToken != nil {
@@ -58,5 +58,29 @@ private struct SessionRecoveryView: View {
                 .buttonStyle(.borderedProminent)
         }
         .padding(28)
+    }
+}
+
+
+@MainActor
+private struct AuthenticatedTabView: View {
+    let api: APIClient
+    let session: SessionStore
+    let user: APIUser
+    let onLogout: () -> Void
+
+    var body: some View {
+        TabView {
+            FeedView(api: api, session: session, user: user, onLogout: onLogout)
+                .tabItem {
+                    Label("Лента", systemImage: "house")
+                }
+
+            ProfileView(api: api, session: session, userID: user.id)
+                .tabItem {
+                    Label("Профиль", systemImage: "person.crop.circle")
+                }
+        }
+        .tint(.accentColor)
     }
 }
