@@ -224,3 +224,65 @@ struct SendMessageResponse: Decodable, Sendable {
     let body: String
     let createdAt: String
 }
+
+struct APISession: Decodable, Sendable, Identifiable {
+    let id: String
+    let createdAt: String
+    let lastSeenAt: String
+    let expiresAt: String
+    let current: Bool
+}
+
+struct SessionListResponse: Decodable, Sendable {
+    let sessions: [APISession]
+}
+
+struct RevokeSessionResponse: Decodable, Sendable {
+    let revoked: Bool
+}
+
+struct APIBlockedUser: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let username: String
+    let displayName: String
+    let blockedAt: String
+}
+
+struct BlockUserResponse: Decodable, Sendable {
+    let blocked: Bool
+}
+
+struct APIReport: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let postId: Int64
+    let reason: String
+    let details: String
+    let status: String
+    let createdAt: String
+    let updatedAt: String
+}
+
+struct CreateReportRequest: Encodable, Sendable {
+    let reason: String
+    let details: String
+}
+
+struct CreateReportResponse: Decodable, Sendable {
+    let reported: Bool
+    let reportId: Int64
+}
+
+struct APIBadge: Decodable, Sendable, Identifiable {
+    let code: String
+    let title: String
+    let description: String
+    let color: String
+    let icon: String
+    let grantedAt: String?
+
+    var id: String { code }
+}
+
+struct BadgeListResponse: Decodable, Sendable {
+    let badges: [APIBadge]
+}
