@@ -6,6 +6,7 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var posts: [APIPost] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isPublishing = false
+    @Published private(set) var currentSort = "latest"
     @Published var errorMessage: String?
 
     private let api: APIClient
@@ -16,13 +17,19 @@ final class FeedViewModel: ObservableObject {
         self.session = session
     }
 
-    func load() async {
+    func load(sort: String? = nil) async {
         guard let token = session.accessToken, !isLoading else { return }
+        let requestedSort = sort ?? currentSort
         isLoading = true
         defer { isLoading = false }
 
         do {
-            posts = try await api.posts(sort: "latest", token: token)
+            if requestedSort == "recommended" {
+                posts = try await api.recommendations(token: token)
+            } else {
+                posts = try await api.posts(sort: requestedSort, token: token)
+            }
+            currentSort = requestedSort
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -96,7 +103,7 @@ final class FeedViewModel: ObservableObject {
 
         do {
             try await api.createTextPost(body: body, tag: tag, token: token)
-            await load()
+            await load(sort: currentSort)
             return true
         } catch {
             errorMessage = error.localizedDescription
