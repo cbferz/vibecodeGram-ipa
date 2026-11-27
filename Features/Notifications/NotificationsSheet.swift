@@ -11,28 +11,10 @@ struct NotificationsSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(model.notifications) { item in
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: icon(for: item.kind))
-                        .font(.title3)
-                        .foregroundStyle(item.read ? .secondary : .tint)
-                        .frame(width: 28)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(description(for: item))
-                            .font(.subheadline.weight(item.read ? .regular : .semibold))
-                        Text(item.createdAt)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    if !item.read {
-                        Circle()
-                            .fill(.tint)
-                            .frame(width: 7, height: 7)
-                    }
+            List {
+                ForEach(model.notifications) { item in
+                    NotificationRow(item: item)
                 }
-                .padding(.vertical, 4)
-                .listRowBackground(item.read ? Color.clear : Color.accentColor.opacity(0.06))
             }
             .overlay {
                 if model.isLoading && model.notifications.isEmpty {
@@ -73,9 +55,37 @@ struct NotificationsSheet: View {
             }
         }
     }
+}
 
-    private func icon(for kind: String) -> String {
-        switch kind {
+private struct NotificationRow: View {
+    let item: APINotification
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(item.read ? Color.secondary : Color.accentColor)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(description)
+                    .font(.subheadline.weight(item.read ? .regular : .semibold))
+                Text(item.createdAt)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            if !item.read {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .padding(.vertical, 4)
+        .listRowBackground(item.read ? Color.clear : Color.accentColor.opacity(0.06))
+    }
+
+    private var icon: String {
+        switch item.kind {
         case "follow": return "person.badge.plus"
         case "like": return "heart.fill"
         case "comment": return "bubble.left.fill"
@@ -84,7 +94,7 @@ struct NotificationsSheet: View {
         }
     }
 
-    private func description(for item: APINotification) -> String {
+    private var description: String {
         let actor = item.displayName.isEmpty ? "@\(item.username)" : item.displayName
         switch item.kind {
         case "follow": return "\(actor) подписался на вас"
