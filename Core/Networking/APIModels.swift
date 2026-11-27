@@ -337,3 +337,22 @@ struct AIToolRequest: Encodable, Sendable {
 struct HidePostResponse: Decodable, Sendable {
     let hidden: Bool
 }
+
+struct DeviceAccount: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let username: String
+    let displayName: String
+    let addedAt: String
+    let isPremium: Bool
+}
+
+struct DeviceAccountsResponse: Decodable, Sendable {
+    let accounts: [DeviceAccount]
+    let limit: Int
+}
+
+struct DeviceAccountActionResponse: Decodable, Sendable {
+    let added: Bool?
+    let removed: Bool?
+    let limit: Int?
+}
