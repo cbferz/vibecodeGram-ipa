@@ -267,7 +267,7 @@ struct APIClient: Sendable {
         }
         let payload = AIToolRequest(text: text, context: context, targetLanguage: targetLanguage)
         return try await send(
-            path: "/v1/ai/tools/\\(tool)",
+            path: "/v1/ai/tools/\(tool)",
             method: "POST",
             body: payload,
             token: token
