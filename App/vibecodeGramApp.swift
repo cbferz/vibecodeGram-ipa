@@ -76,6 +76,11 @@ private struct AuthenticatedTabView: View {
                     Label("Лента", systemImage: "house")
                 }
 
+            VibeesView(api: api, session: session)
+                .tabItem {
+                    Label("vibees", systemImage: "play.rectangle")
+                }
+
             ProfileView(api: api, session: session, userID: user.id)
                 .tabItem {
                     Label("Профиль", systemImage: "person.crop.circle")
