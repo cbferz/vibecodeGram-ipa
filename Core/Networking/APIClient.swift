@@ -89,6 +89,110 @@ struct APIClient: Sendable {
         )
     }
 
+    func stories(token: String) async throws -> [APIStory] {
+        try await send(path: "/v1/stories", method: "GET", token: token)
+    }
+
+    func markStoryViewed(storyID: Int64, token: String) async throws {
+        let _: StoryViewResponse = try await send(
+            path: "/v1/stories/\(storyID)/view",
+            method: "POST",
+            body: EmptyRequest(),
+            token: token
+        )
+    }
+
+    func deleteStory(storyID: Int64, token: String) async throws {
+        let _: StoryDeleteResponse = try await send(
+            path: "/v1/stories/\(storyID)",
+            method: "DELETE",
+            token: token
+        )
+    }
+
+    func createStory(
+        media: Data,
+        mimeType: String,
+        caption: String,
+        durationHours: Int,
+        token: String
+    ) async throws {
+        guard [5, 12, 24, 48].contains(durationHours) else {
+            throw APIError.httpStatus(400, "Unsupported story expiration.")
+        }
+        guard media.count > 0, media.count <= 15 * 1024 * 1024 else {
+            throw APIError.httpStatus(413, "Story media must be between 1 byte and 15 MiB.")
+        }
+        guard ["image/jpeg", "image/png", "image/webp", "video/mp4"].contains(mimeType) else {
+            throw APIError.httpStatus(415, "Unsupported story media type.")
+        }
+
+        let boundary = "vibecodegram-\(UUID().uuidString)"
+        var body = Data()
+        appendMultipartField("caption", value: String(caption.prefix(500)), boundary: boundary, to: &body)
+        appendMultipartField("duration_hours", value: String(durationHours), boundary: boundary, to: &body)
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"media\"; filename=\"story-media\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(media)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+        let url = baseURL.appending(path: "/v1/stories")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 120
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await session.upload(for: request, from: body)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
+            throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let _: CreateStoryResponse = try decoder.decode(CreateStoryResponse.self, from: data)
+        } catch {
+            throw APIError.decoding(error.localizedDescription)
+        }
+    }
+
+    func downloadMedia(path: String, token: String) async throws -> Data {
+        guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
+            throw APIError.invalidBaseURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 60
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
+            throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
+        }
+        return data
+    }
+
+    private func appendMultipartField(
+        _ name: String,
+        value: String,
+        boundary: String,
+        to data: inout Data
+    ) {
+        data.append("--\(boundary)\r\n".data(using: .utf8)!)
+        data.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+        data.append(value.data(using: .utf8)!)
+        data.append("\r\n".data(using: .utf8)!)
+    }
+
     private func send<Response: Decodable>(
         path: String,
         method: String,
@@ -134,7 +238,9 @@ struct APIClient: Sendable {
         }
 
         do {
-            return try JSONDecoder().decode(Response.self, from: data)
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(Response.self, from: data)
         } catch {
             throw APIError.decoding(error.localizedDescription)
         }
