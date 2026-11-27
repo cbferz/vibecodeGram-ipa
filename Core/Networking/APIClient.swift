@@ -62,18 +62,18 @@ struct APIClient: Sendable {
     }
 
     func setSaved(postID: Int64, saved: Bool, token: String) async throws {
-        let method = saved ? "PUT" : "DELETE"
+        let path = "/v1/posts/\(postID)/save"
         if saved {
             let _: SavedResponse = try await send(
-                path: "/v1/posts/\(postID)/save",
-                method: method,
+                path: path,
+                method: "PUT",
                 body: EmptyRequest(),
                 token: token
             )
         } else {
             let _: SavedResponse = try await send(
-                path: "/v1/posts/\(postID)/save",
-                method: method,
+                path: path,
+                method: "DELETE",
                 token: token
             )
         }
@@ -81,7 +81,7 @@ struct APIClient: Sendable {
 
     func createTextPost(body: String, tag: String, token: String) async throws {
         let payload = CreatePostRequest(body: body, tag: tag)
-        let _: APIPost = try await send(
+        let _: CreatePostResponse = try await send(
             path: "/v1/posts",
             method: "POST",
             body: payload,
