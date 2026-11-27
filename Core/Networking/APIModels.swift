@@ -356,3 +356,7 @@ struct DeviceAccountActionResponse: Decodable, Sendable {
     let removed: Bool?
     let limit: Int?
 }
+
+struct DeviceAccountRequest: Encodable, Sendable {
+    let deviceId: String
+}
