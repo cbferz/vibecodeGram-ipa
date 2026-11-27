@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct AuthView: View {
     @StateObject private var model: AuthViewModel
 
