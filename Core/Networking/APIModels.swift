@@ -333,3 +333,7 @@ struct AIToolRequest: Encodable, Sendable {
     let context: String
     let targetLanguage: String
 }
+
+struct HidePostResponse: Decodable, Sendable {
+    let hidden: Bool
+}
