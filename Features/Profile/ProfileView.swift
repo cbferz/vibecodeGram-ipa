@@ -341,7 +341,7 @@ private struct ProfileEditSheet: View {
     }
 }
 
-private enum PeopleListKind: String, Identifiable {
+private enum PeopleListKind: String, Identifiable, Equatable {
     case followers
     case following
 
@@ -373,10 +373,10 @@ private struct PeopleListSheet: View {
             .overlay {
                 if isLoading {
                     ProgressView()
-                } else if people.isEmpty {
-                    ContentUnavailableView("Список пуст", systemImage: "person.2")
                 } else if let errorMessage {
                     ContentUnavailableView("Ошибка загрузки", systemImage: "wifi.exclamationmark", description: Text(errorMessage))
+                } else if people.isEmpty {
+                    ContentUnavailableView("Список пуст", systemImage: "person.2")
                 }
             }
             .navigationTitle(kind.title)
