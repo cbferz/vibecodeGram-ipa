@@ -6,6 +6,7 @@ struct FeedView: View {
     private let session: SessionStore
     @StateObject private var model: FeedViewModel
     @State private var showingComposer = false
+    @State private var selectedCommentPost: APIPost?
     let user: APIUser
     let onLogout: () -> Void
 
@@ -40,6 +41,7 @@ struct FeedView: View {
                             FeedPostCard(
                                 post: post,
                                 onLike: { Task { await model.toggleLike(for: post) } },
+                                onComments: { selectedCommentPost = post },
                                 onSave: { Task { await model.toggleSaved(for: post) } }
                             )
                         }
@@ -86,6 +88,11 @@ struct FeedView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
+            .sheet(item: $selectedCommentPost) { post in
+                CommentsSheet(api: api, session: session, postID: post.id)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
             .alert("Не удалось выполнить действие", isPresented: Binding(
                 get: { model.errorMessage != nil },
                 set: { if !$0 { model.errorMessage = nil } }
@@ -102,6 +109,7 @@ struct FeedView: View {
 private struct FeedPostCard: View {
     let post: APIPost
     let onLike: () -> Void
+    let onComments: () -> Void
     let onSave: () -> Void
 
     var body: some View {
@@ -153,6 +161,12 @@ private struct FeedPostCard: View {
                             .foregroundStyle(post.liked ? .red : .primary)
                     }
                     .accessibilityLabel(post.liked ? "Убрать отметку нравится" : "Нравится")
+
+                    Button(action: onComments) {
+                        Image(systemName: "bubble.right")
+                            .foregroundStyle(.primary)
+                    }
+                    .accessibilityLabel("Комментарии")
 
                     Button(action: onSave) {
                         Image(systemName: post.saved ? "bookmark.fill" : "bookmark")
