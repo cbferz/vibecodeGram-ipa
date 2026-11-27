@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct AuthView: View {
-    @EnvironmentObject private var session: SessionStore
     @StateObject private var model: AuthViewModel
 
-    init(api: APIClient) {
-        _model = StateObject(wrappedValue: AuthViewModel(api: api, session: SessionStoreProxy.shared))
+    init(api: APIClient, session: SessionStore) {
+        _model = StateObject(wrappedValue: AuthViewModel(api: api, session: session))
     }
 
     var body: some View {
@@ -65,8 +64,7 @@ struct AuthView: View {
             .disabled(model.isSubmitting)
 
             Button(model.isRegistering ? "Уже есть аккаунт? Войти" : "Создать аккаунт") {
-                model.isRegistering.toggle()
-                model.errorMessage = nil
+                model.toggleMode()
             }
             .font(.footnote.weight(.medium))
 
