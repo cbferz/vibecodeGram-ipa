@@ -120,6 +120,9 @@ struct APIClient: Sendable {
         guard [5, 12, 24, 48].contains(durationHours) else {
             throw APIError.httpStatus(400, "Unsupported story expiration.")
         }
+        guard caption.utf8.count <= 500 else {
+            throw APIError.httpStatus(400, "Story caption must be at most 500 bytes.")
+        }
         guard media.count > 0, media.count <= 15 * 1024 * 1024 else {
             throw APIError.httpStatus(413, "Story media must be between 1 byte and 15 MiB.")
         }
@@ -129,7 +132,7 @@ struct APIClient: Sendable {
 
         let boundary = "vibecodegram-\(UUID().uuidString)"
         var body = Data()
-        appendMultipartField("caption", value: String(caption.prefix(500)), boundary: boundary, to: &body)
+        appendMultipartField("caption", value: caption, boundary: boundary, to: &body)
         appendMultipartField("duration_hours", value: String(durationHours), boundary: boundary, to: &body)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"media\"; filename=\"story-media\"\r\n".data(using: .utf8)!)
@@ -160,6 +163,10 @@ struct APIClient: Sendable {
         } catch {
             throw APIError.decoding(error.localizedDescription)
         }
+    }
+
+    func mediaURL(for path: String) -> URL? {
+        URL(string: path, relativeTo: baseURL)?.absoluteURL
     }
 
     func downloadMedia(path: String, token: String) async throws -> Data {
