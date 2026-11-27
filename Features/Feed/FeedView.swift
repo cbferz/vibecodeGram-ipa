@@ -1,12 +1,17 @@
 import SwiftUI
 
+@MainActor
 struct FeedView: View {
+    private let api: APIClient
+    private let session: SessionStore
     @StateObject private var model: FeedViewModel
     @State private var showingComposer = false
     let user: APIUser
     let onLogout: () -> Void
 
     init(api: APIClient, session: SessionStore, user: APIUser, onLogout: @escaping () -> Void) {
+        self.api = api
+        self.session = session
         self.user = user
         self.onLogout = onLogout
         _model = StateObject(wrappedValue: FeedViewModel(api: api, session: session))
@@ -16,6 +21,8 @@ struct FeedView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 14) {
+                    StoriesStripView(api: api, session: session, currentUserID: user.id)
+                        .padding(.horizontal, 2)
                     if model.isLoading && model.posts.isEmpty {
                         ProgressView("Загружаем ленту…")
                             .padding(.top, 48)
