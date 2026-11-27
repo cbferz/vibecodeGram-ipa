@@ -1,0 +1,74 @@
+name: iOS IPA Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "App/**"
+      - "Core/**"
+      - "Features/**"
+      - "Assets.xcassets/**"
+      - "Resources/**"
+      - "project.yml"
+      - ".github/workflows/ipa.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build iOS device app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project vibecodeGram.xcodeproj \
+            -scheme vibecodeGram \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/vibecodeGram.app"
+          test -d "$APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload vibecodeGram-unsigned.ipa
+          test -s vibecodeGram-unsigned.ipa
+          shasum -a 256 vibecodeGram-unsigned.ipa
+          ls -lh vibecodeGram-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibecodeGram-unsigned-ipa
+          path: build/ipa/vibecodeGram-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
