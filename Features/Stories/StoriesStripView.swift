@@ -9,9 +9,13 @@ struct StoriesStripView: View {
     @StateObject private var model: StoriesViewModel
     @State private var showingComposer = false
     @State private var selectedStory: APIStory?
+    private let api: APIClient
+    private let token: String
     let currentUserID: Int64
 
     init(api: APIClient, session: SessionStore, currentUserID: Int64) {
+        self.api = api
+        self.token = session.accessToken ?? ""
         self.currentUserID = currentUserID
         _model = StateObject(wrappedValue: StoriesViewModel(api: api, session: session))
     }
@@ -105,8 +109,9 @@ struct StoriesStripView: View {
             Task { await model.load() }
         }) { story in
             StoryViewerView(
+                api: api,
                 story: story,
-                token: modelToken,
+                token: token,
                 isOwnStory: story.authorId == currentUserID,
                 onDelete: {
                     await model.delete(story)
@@ -121,11 +126,6 @@ struct StoriesStripView: View {
         } message: {
             Text(model.errorMessage ?? "")
         }
-    }
-
-    private var modelToken: String {
-        // The viewer is only constructed after an authenticated session is present.
-        ""
     }
 }
 
@@ -172,6 +172,9 @@ private struct StoryCreateSheet: View {
                 Section("Подпись") {
                     TextField("Добавьте подпись", text: $caption, axis: .vertical)
                         .lineLimit(2...4)
+                    Text("\(caption.utf8.count) / 500 байт")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Исчезновение истории") {
@@ -207,7 +210,11 @@ private struct StoryCreateSheet: View {
                             else { errorMessage = "Не удалось опубликовать историю. Проверьте формат и размер файла (до 15 МиБ)." }
                         }
                     }
-                    .disabled(isPublishing || mediaData == nil || caption.utf8.count > 500)
+                    .disabled(
+                        isPublishing
+                        || mediaData == nil
+                        || caption.utf8.count > 500
+                    )
                 }
             }
             .fileImporter(
@@ -251,18 +258,27 @@ private struct StoryCreateSheet: View {
     private func loadVideo(_ result: Result<[URL], Error>) {
         do {
             guard let url = try result.get().first else { return }
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasAccess { url.stopAccessingSecurityScopedResource() }
+            Task {
+                do {
+                    let data = try await Task.detached(priority: .userInitiated) {
+                        let hasAccess = url.startAccessingSecurityScopedResource()
+                        defer {
+                            if hasAccess { url.stopAccessingSecurityScopedResource() }
+                        }
+                        return try Data(contentsOf: url, options: .mappedIfSafe)
+                    }.value
+
+                    guard data.count <= 15 * 1024 * 1024 else {
+                        errorMessage = "Видео превышает лимит 15 МиБ."
+                        return
+                    }
+                    mediaData = data
+                    mimeType = "video/mp4"
+                    errorMessage = nil
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
             }
-            let data = try Data(contentsOf: url, options: .mappedIfSafe)
-            guard data.count <= 15 * 1024 * 1024 else {
-                errorMessage = "Видео превышает лимит 15 МиБ."
-                return
-            }
-            mediaData = data
-            mimeType = "video/mp4"
-            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -276,6 +292,7 @@ private struct StoryViewerView: View {
     @State private var player: AVPlayer?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    let api: APIClient
     let story: APIStory
     let token: String
     let isOwnStory: Bool
@@ -357,7 +374,7 @@ private struct StoryViewerView: View {
         }
 
         if story.mediaType == "video/mp4" {
-            guard let url = URL(string: story.mediaUrl, relativeTo: URL(string: "https://api.vibecodegram.tendercheck.pro"))?.absoluteURL else {
+            guard let url = api.mediaURL(for: story.mediaUrl) else {
                 errorMessage = "Некорректный адрес видео."
                 isLoading = false
                 return
@@ -375,7 +392,6 @@ private struct StoryViewerView: View {
         }
 
         do {
-            let api = APIClient()
             let data = try await api.downloadMedia(path: story.mediaUrl, token: token)
             guard let decoded = UIImage(data: data) else {
                 throw APIError.decoding("Unsupported story image.")
