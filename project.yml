@@ -30,6 +30,7 @@ targets:
     scheme:
       testTargets:
         - vibecodeGramTests
+        - vibecodeGramUITests
   vibecodeGramTests:
     type: bundle.unit-test
     platform: iOS
@@ -40,3 +41,14 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vibecodegram.ios.tests
+
+  vibecodeGramUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: vibecodeGram
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vibecodegram.ios.uitests
