@@ -7,6 +7,7 @@ struct FeedView: View {
     @StateObject private var model: FeedViewModel
     @State private var showingComposer = false
     @State private var showingNotifications = false
+    @State private var showingSearch = false
     @State private var selectedCommentPost: APIPost?
     let user: APIUser
     let onLogout: () -> Void
@@ -62,6 +63,14 @@ struct FeedView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showingSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Поиск")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showingNotifications = true
                     } label: {
                         Image(systemName: "bell")
@@ -105,6 +114,11 @@ struct FeedView: View {
             .sheet(isPresented: $showingNotifications) {
                 NotificationsSheet(api: api, session: session)
                     .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showingSearch) {
+                SearchSheet(api: api, session: session)
+                    .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
             .alert("Не удалось выполнить действие", isPresented: Binding(
