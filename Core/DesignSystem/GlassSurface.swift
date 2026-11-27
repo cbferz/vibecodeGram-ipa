@@ -14,21 +14,26 @@ struct GlassSurface<Content: View>: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-        Group {
-            if #available(iOS 26.0, *) {
-                content
-                    .padding(16)
-                    .glassEffect(.regular, in: shape)
-            } else {
-                content
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: shape)
-                    .overlay {
-                        shape.strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-                    }
-                    .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
-            }
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .padding(16)
+                .glassEffect(.regular, in: shape)
+        } else {
+            materialSurface(in: shape)
         }
+        #else
+        materialSurface(in: shape)
+        #endif
+    }
+
+    private func materialSurface<ShapeType: Shape>(in shape: ShapeType) -> some View {
+        content
+            .padding(16)
+            .background(.ultraThinMaterial, in: shape)
+            .overlay {
+                shape.strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
     }
 }
