@@ -9,10 +9,8 @@ final class SessionStore: ObservableObject {
     @Published private(set) var restorationError: String?
 
     private let keychain = KeychainStore()
-    private var unauthorizedObserver: NSObjectProtocol?
-
     init() {
-        unauthorizedObserver = NotificationCenter.default.addObserver(
+        NotificationCenter.default.addObserver(
             forName: .vibecodeGramUnauthorized,
             object: nil,
             queue: .main
@@ -22,12 +20,6 @@ final class SessionStore: ObservableObject {
                 guard self?.accessToken == expiredToken else { return }
                 self?.clear()
             }
-        }
-    }
-
-    deinit {
-        if let unauthorizedObserver {
-            NotificationCenter.default.removeObserver(unauthorizedObserver)
         }
     }
 
