@@ -190,8 +190,8 @@ private struct BadgesSettingsView: View {
     var body: some View {
         List(model.badges) { badge in
             HStack(spacing: 12) {
-                Image(systemName: badge.icon.isEmpty ? "rosette" : badge.icon)
-                    .font(.title2)
+                Text(badge.icon.isEmpty ? "✦" : badge.icon)
+                    .font(.title2.weight(.semibold))
                     .foregroundStyle(Color(hex: badge.color))
                     .frame(width: 34)
                 VStack(alignment: .leading, spacing: 3) {
