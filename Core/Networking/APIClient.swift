@@ -99,6 +99,10 @@ struct APIClient: Sendable {
         )
     }
 
+    func recommendations(token: String) async throws -> [APIPost] {
+        try await send(path: "/v1/recommendations", method: "GET", token: token)
+    }
+
     func reels(offset: Int, limit: Int = 20, token: String) async throws -> [APIPost] {
         let safeOffset = max(0, offset)
         let safeLimit = min(max(1, limit), 30)
