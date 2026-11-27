@@ -93,7 +93,7 @@ struct APIClient: Sendable {
         let safeOffset = max(0, offset)
         let safeLimit = min(max(1, limit), 30)
         return try await send(
-            path: "/v1/reels?limit=\\(safeLimit)&offset=\\(safeOffset)",
+            path: "/v1/reels?limit=\(safeLimit)&offset=\(safeOffset)",
             method: "GET",
             token: token
         )
@@ -112,21 +112,23 @@ struct APIClient: Sendable {
         guard media.subdata(in: 4..<8) == Data("ftyp".utf8) else {
             throw APIError.httpStatus(415, "Only MP4 video files are supported.")
         }
+
         let cleanBody = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanTag = tag.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "^#", with: "", options: .regularExpression)
+        let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanTag = trimmedTag.hasPrefix("#") ? String(trimmedTag.dropFirst()) : trimmedTag
         guard cleanBody.utf8.count <= 5000, cleanTag.utf8.count <= 32 else {
             throw APIError.httpStatus(400, "Video description or tag is too long.")
         }
 
-        let boundary = "vibecodegram-\\(UUID().uuidString)"
+        let boundary = "vibecodegram-\(UUID().uuidString)"
         var body = Data()
         appendMultipartField("body", value: cleanBody, boundary: boundary, to: &body)
         appendMultipartField("tag", value: cleanTag, boundary: boundary, to: &body)
-        body.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\\"video\\"; filename=\\"upload.mp4\\"\\r\\n".data(using: .utf8)!)
-        body.append("Content-Type: video/mp4\\r\\n\\r\\n".data(using: .utf8)!)
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"video\"; filename=\"upload.mp4\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: video/mp4\r\n\r\n".data(using: .utf8)!)
         body.append(media)
-        body.append("\\r\\n--\\(boundary)--\\r\\n".data(using: .utf8)!)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
         let endpoint = asReel ? "/v1/reels/video" : "/v1/posts/video"
         let url = baseURL.appending(path: endpoint)
@@ -134,8 +136,8 @@ struct APIClient: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 180
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \\(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         let (data, response) = try await session.upload(for: request, from: body)
         guard let http = response as? HTTPURLResponse else {
