@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class AuthFlowUITests: XCTestCase {
     func testAuthenticationScreenDisplaysLoginControls() {
         let app = XCUIApplication()
