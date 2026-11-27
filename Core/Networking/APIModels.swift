@@ -131,3 +131,7 @@ struct APIPerson: Decodable, Sendable, Identifiable {
     let username: String
     let displayName: String
 }
+
+struct FollowResponse: Decodable, Sendable {
+    let following: Bool
+}
