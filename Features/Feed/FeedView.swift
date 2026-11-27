@@ -6,6 +6,7 @@ struct FeedView: View {
     private let session: SessionStore
     @StateObject private var model: FeedViewModel
     @State private var showingComposer = false
+    @State private var showingNotifications = false
     @State private var selectedCommentPost: APIPost?
     let user: APIUser
     let onLogout: () -> Void
@@ -60,6 +61,14 @@ struct FeedView: View {
                         .foregroundStyle(.secondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingNotifications = true
+                    } label: {
+                        Image(systemName: "bell")
+                    }
+                    .accessibilityLabel("Уведомления")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button(role: .destructive, action: onLogout) {
                             Label("Выйти из аккаунта", systemImage: "rectangle.portrait.and.arrow.right")
@@ -90,6 +99,11 @@ struct FeedView: View {
             }
             .sheet(item: $selectedCommentPost) { post in
                 CommentsSheet(api: api, session: session, postID: post.id)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showingNotifications) {
+                NotificationsSheet(api: api, session: session)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
