@@ -8,6 +8,7 @@ struct FeedView: View {
     private let session: SessionStore
     @StateObject private var model: FeedViewModel
     @State private var showingComposer = false
+    @State private var selectedSort = "latest"
     @State private var showingNotifications = false
     @State private var showingSearch = false
     @State private var selectedCommentPost: APIPost?
@@ -28,6 +29,26 @@ struct FeedView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 14) {
+                    HStack {
+                        Text("Лента")
+                            .font(.headline)
+                        Spacer()
+                        Menu {
+                            Picker("Сортировка", selection: $selectedSort) {
+                                Text("Для вас").tag("recommended")
+                                Text("Сначала новые").tag("latest")
+                                Text("Популярное").tag("popular")
+                                Text("Сохранённые").tag("saved")
+                                Text("Скрытые").tag("hidden")
+                                Text("Видео").tag("videos")
+                            }
+                        } label: {
+                            Label(sortTitle, systemImage: "slider.horizontal.3")
+                                .font(.subheadline.weight(.medium))
+                        }
+                    }
+                    .padding(.horizontal, 4)
+
                     StoriesStripView(api: api, session: session, currentUserID: user.id)
                         .padding(.horizontal, 2)
                     if model.isLoading && model.posts.isEmpty {
@@ -62,7 +83,8 @@ struct FeedView: View {
                 .padding(.vertical, 12)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .refreshable { await model.load() }
+            .refreshable { await model.load(sort: selectedSort) }
+            .onChange(of: selectedSort) { _, sort in Task { await model.load(sort: sort) } }
             .navigationTitle("vibecodeGram")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -172,7 +194,7 @@ struct FeedView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
-            .task { await model.load() }
+            .task { await model.load(sort: selectedSort) }
         }
     }
 }
@@ -510,5 +532,19 @@ private struct AuthenticatedVideoPreview: View {
         )
         let next = AVPlayer(playerItem: AVPlayerItem(asset: asset))
         player = next
+    }
+}
+
+
+private extension FeedView {
+    var sortTitle: String {
+        switch selectedSort {
+        case "recommended": return "Для вас"
+        case "popular": return "Популярное"
+        case "saved": return "Сохранённые"
+        case "hidden": return "Скрытые"
+        case "videos": return "Видео"
+        default: return "Сначала новые"
+        }
     }
 }
