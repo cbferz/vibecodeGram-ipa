@@ -297,7 +297,7 @@ struct APIClient: Sendable {
     }
 
     func addDeviceAccount(deviceID: String, token: String) async throws -> DeviceAccountActionResponse {
-        let payload = DeviceAccountRequest(deviceID: deviceID)
+        let payload = DeviceAccountRequest(deviceId: deviceID)
         return try await send(path: "/v1/devices/accounts", method: "POST", body: payload, token: token)
     }
 
