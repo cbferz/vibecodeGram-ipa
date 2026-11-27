@@ -43,6 +43,17 @@ struct CreatePostRequest: Encodable, Sendable {
     let tag: String
 }
 
+struct CreatePostResponse: Decodable, Sendable {
+    let id: Int64
+    let authorId: Int64
+    let body: String
+    let tag: String
+    let createdAt: String
+    let likes: Int64
+    let liked: Bool
+    let saved: Bool
+}
+
 struct LikeResponse: Decodable, Sendable {
     let liked: Bool
     let likes: Int64
