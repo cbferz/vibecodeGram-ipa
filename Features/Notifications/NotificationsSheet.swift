@@ -76,11 +76,11 @@ struct NotificationsSheet: View {
 
     private func icon(for kind: String) -> String {
         switch kind {
-        case "follow": "person.badge.plus"
-        case "like": "heart.fill"
-        case "comment": "bubble.left.fill"
-        case "message": "message.fill"
-        default: "bell.fill"
+        case "follow": return "person.badge.plus"
+        case "like": return "heart.fill"
+        case "comment": return "bubble.left.fill"
+        case "message": return "message.fill"
+        default: return "bell.fill"
         }
     }
 
