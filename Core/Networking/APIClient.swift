@@ -223,6 +223,33 @@ struct APIClient: Sendable {
         )
     }
 
+    func comments(postID: Int64, token: String) async throws -> [APIComment] {
+        try await send(path: "/v1/posts/\(postID)/comments", method: "GET", token: token)
+    }
+
+    func addComment(postID: Int64, body: String, token: String) async throws {
+        let payload = CreateCommentRequest(body: body)
+        let _: CreateCommentResponse = try await send(
+            path: "/v1/posts/\(postID)/comments",
+            method: "POST",
+            body: payload,
+            token: token
+        )
+    }
+
+    func notifications(token: String) async throws -> [APINotification] {
+        try await send(path: "/v1/notifications", method: "GET", token: token)
+    }
+
+    func markNotificationsRead(token: String) async throws {
+        let _: MarkNotificationsReadResponse = try await send(
+            path: "/v1/notifications/read",
+            method: "POST",
+            body: EmptyRequest(),
+            token: token
+        )
+    }
+
     func stories(token: String) async throws -> [APIStory] {
         try await send(path: "/v1/stories", method: "GET", token: token)
     }
