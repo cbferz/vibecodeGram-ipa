@@ -179,3 +179,7 @@ struct APINotification: Decodable, Sendable, Identifiable {
 struct MarkNotificationsReadResponse: Decodable, Sendable {
     let read: Bool
 }
+
+struct CreateCommentRequest: Encodable, Sendable {
+    let body: String
+}
