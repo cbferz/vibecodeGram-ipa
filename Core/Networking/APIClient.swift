@@ -288,6 +288,27 @@ struct APIClient: Sendable {
         )
     }
 
+    func deviceAccounts(deviceID: String, token: String) async throws -> DeviceAccountsResponse {
+        var components = URLComponents()
+        components.path = "/v1/devices/accounts"
+        components.queryItems = [URLQueryItem(name: "device_id", value: deviceID)]
+        guard let path = components.string else { throw APIError.invalidBaseURL }
+        return try await send(path: path, method: "GET", token: token)
+    }
+
+    func addDeviceAccount(deviceID: String, token: String) async throws -> DeviceAccountActionResponse {
+        let payload = DeviceAccountRequest(deviceID: deviceID)
+        return try await send(path: "/v1/devices/accounts", method: "POST", body: payload, token: token)
+    }
+
+    func removeDeviceAccount(accountID: Int64, deviceID: String, token: String) async throws -> DeviceAccountActionResponse {
+        var components = URLComponents()
+        components.path = "/v1/devices/accounts/\(accountID)"
+        components.queryItems = [URLQueryItem(name: "device_id", value: deviceID)]
+        guard let path = components.string else { throw APIError.invalidBaseURL }
+        return try await send(path: path, method: "DELETE", token: token)
+    }
+
     func sessions(token: String) async throws -> [APISession] {
         let response: SessionListResponse = try await send(path: "/v1/sessions", method: "GET", token: token)
         return response.sessions
