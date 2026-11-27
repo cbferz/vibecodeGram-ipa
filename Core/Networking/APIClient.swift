@@ -90,7 +90,7 @@ struct APIClient: Sendable {
     }
 
     func profile(userID: Int64, token: String) async throws -> APIProfile {
-        try await send(path: "/v1/users/\\(userID)", method: "GET", token: token)
+        try await send(path: "/v1/users/\(userID)", method: "GET", token: token)
     }
 
     func userPosts(userID: Int64, kind: String, token: String) async throws -> [APIPost] {
@@ -98,7 +98,7 @@ struct APIClient: Sendable {
             throw APIError.httpStatus(400, "Unsupported profile media kind.")
         }
         return try await send(
-            path: "/v1/users/\\(userID)/posts?kind=\\(kind)",
+            path: "/v1/users/\(userID)/posts?kind=\(kind)",
             method: "GET",
             token: token
         )
@@ -133,14 +133,14 @@ struct APIClient: Sendable {
         let method = follow ? "POST" : "DELETE"
         if follow {
             let _: FollowResponse = try await send(
-                path: "/v1/users/\\(userID)/follow",
+                path: "/v1/users/\(userID)/follow",
                 method: method,
                 body: EmptyRequest(),
                 token: token
             )
         } else {
             let _: FollowResponse = try await send(
-                path: "/v1/users/\\(userID)/follow",
+                path: "/v1/users/\(userID)/follow",
                 method: method,
                 token: token
             )
@@ -150,7 +150,7 @@ struct APIClient: Sendable {
     func followers(userID: Int64, following: Bool, token: String) async throws -> [APIPerson] {
         let suffix = following ? "following" : "followers"
         return try await send(
-            path: "/v1/users/\\(userID)/\\(suffix)",
+            path: "/v1/users/\(userID)/\(suffix)",
             method: "GET",
             token: token
         )
