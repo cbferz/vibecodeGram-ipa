@@ -26,16 +26,40 @@ private struct AppRootView: View {
             if session.isRestoring {
                 ProgressView("Подключение к vibecodeGram…")
                     .tint(.primary)
-            } else if session.accessToken != nil, let user = session.user {
+            } else if let user = session.user {
                 AuthenticatedRootView(user: user, onLogout: {
                     Task { await session.logout(using: api) }
                 })
+            } else if session.accessToken != nil {
+                SessionRecoveryView(message: session.restorationError ?? "Не удалось проверить сессию.") {
+                    Task { await session.retryRestore(using: api) }
+                }
             } else {
-                AuthView(api: api)
+                AuthView(api: api, session: session)
             }
         }
         .animation(.snappy(duration: 0.25), value: session.isRestoring)
         .preferredColorScheme(nil)
+    }
+}
+
+private struct SessionRecoveryView: View {
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.largeTitle)
+            Text(message)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Button("Повторить") {
+                onRetry()
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(28)
     }
 }
 
