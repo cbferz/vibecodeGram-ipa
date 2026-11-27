@@ -200,6 +200,17 @@ struct ProfileView: View {
                 ProfileStat(value: profile.likes, label: "Лайки")
             }
             .padding(.horizontal, 18)
+
+            if !profile.isMe {
+                Button {
+                    Task { await model.toggleFollow() }
+                } label: {
+                    Text(profile.followed ? "Отписаться" : "Подписаться")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal, 18)
+            }
         }
         .padding(.bottom, 12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
