@@ -104,6 +104,30 @@ final class FeedViewModel: ObservableObject {
         }
     }
 
+    func publishVideo(media: Data, body: String, tag: String) async -> Bool {
+        guard let token = session.accessToken else {
+            errorMessage = "Сессия завершена. Войдите снова."
+            return false
+        }
+        guard !isPublishing else { return false }
+        isPublishing = true
+        defer { isPublishing = false }
+        do {
+            try await api.createVideoContent(
+                media: media,
+                bodyText: body,
+                tag: tag,
+                asReel: false,
+                token: token
+            )
+            await load()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     private func update(postID: Int64, transform: (APIPost) -> APIPost) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         posts[index] = transform(posts[index])
