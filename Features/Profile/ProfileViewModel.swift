@@ -44,6 +44,18 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
+    func toggleFollow() async {
+        guard let token = session.accessToken,
+              let current = profile,
+              !current.isMe else { return }
+        do {
+            try await api.followUser(userID: userID, follow: !current.followed, token: token)
+            profile = try await api.profile(userID: userID, token: token)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func saveProfile(_ input: UpdateProfileRequest) async -> Bool {
         guard let token = session.accessToken, !isSaving else { return false }
         isSaving = true
