@@ -95,3 +95,39 @@ struct StoryViewResponse: Decodable, Sendable {
 struct StoryDeleteResponse: Decodable, Sendable {
     let deleted: Bool
 }
+
+struct APIProfile: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let username: String
+    let displayName: String
+    let bio: String
+    let avatarUrl: String
+    let coverUrl: String
+    let website: String
+    let location: String
+    let followers: Int64
+    let following: Int64
+    let posts: Int64
+    let likes: Int64
+    let followed: Bool
+    let isMe: Bool
+}
+
+struct UpdateProfileRequest: Encodable, Sendable {
+    let displayName: String
+    let bio: String
+    let avatarUrl: String
+    let coverUrl: String
+    let website: String
+    let location: String
+}
+
+struct UpdateProfileResponse: Decodable, Sendable {
+    let updated: Bool
+}
+
+struct APIPerson: Decodable, Sendable, Identifiable {
+    let id: Int64
+    let username: String
+    let displayName: String
+}
