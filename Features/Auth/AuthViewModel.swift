@@ -18,6 +18,11 @@ final class AuthViewModel: ObservableObject {
         self.session = session
     }
 
+    func toggleMode() {
+        isRegistering.toggle()
+        errorMessage = nil
+    }
+
     func submit() async {
         guard !isSubmitting else { return }
         errorMessage = nil
