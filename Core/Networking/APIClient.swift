@@ -89,6 +89,71 @@ struct APIClient: Sendable {
         )
     }
 
+    func reels(offset: Int, limit: Int = 20, token: String) async throws -> [APIPost] {
+        let safeOffset = max(0, offset)
+        let safeLimit = min(max(1, limit), 30)
+        return try await send(
+            path: "/v1/reels?limit=\\(safeLimit)&offset=\\(safeOffset)",
+            method: "GET",
+            token: token
+        )
+    }
+
+    func createVideoContent(
+        media: Data,
+        bodyText: String,
+        tag: String,
+        asReel: Bool,
+        token: String
+    ) async throws {
+        guard media.count >= 12, media.count <= 50 * 1024 * 1024 else {
+            throw APIError.httpStatus(413, "MP4 video must be between 12 bytes and 50 MiB.")
+        }
+        guard media.subdata(in: 4..<8) == Data("ftyp".utf8) else {
+            throw APIError.httpStatus(415, "Only MP4 video files are supported.")
+        }
+        let cleanBody = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanTag = tag.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "^#", with: "", options: .regularExpression)
+        guard cleanBody.utf8.count <= 5000, cleanTag.utf8.count <= 32 else {
+            throw APIError.httpStatus(400, "Video description or tag is too long.")
+        }
+
+        let boundary = "vibecodegram-\\(UUID().uuidString)"
+        var body = Data()
+        appendMultipartField("body", value: cleanBody, boundary: boundary, to: &body)
+        appendMultipartField("tag", value: cleanTag, boundary: boundary, to: &body)
+        body.append("--\\(boundary)\\r\\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\\"video\\"; filename=\\"upload.mp4\\"\\r\\n".data(using: .utf8)!)
+        body.append("Content-Type: video/mp4\\r\\n\\r\\n".data(using: .utf8)!)
+        body.append(media)
+        body.append("\\r\\n--\\(boundary)--\\r\\n".data(using: .utf8)!)
+
+        let endpoint = asReel ? "/v1/reels/video" : "/v1/posts/video"
+        let url = baseURL.appending(path: endpoint)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 180
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \\(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await session.upload(for: request, from: body)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
+            throw APIError.httpStatus(http.statusCode, payload?.error ?? "")
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let _: CreateVideoPostResponse = try decoder.decode(CreateVideoPostResponse.self, from: data)
+        } catch {
+            throw APIError.decoding(error.localizedDescription)
+        }
+    }
+
     func profile(userID: Int64, token: String) async throws -> APIProfile {
         try await send(path: "/v1/users/\(userID)", method: "GET", token: token)
     }
