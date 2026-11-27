@@ -12,45 +12,51 @@ Last audited: 2026-11-27.
 - [x] Record Android screen inventory and backend support map.
 - [ ] Complete fixture coverage for every endpoint and edge case.
 
-## Phase 2 — iOS foundation and first vertical slices
+## Phase 2 — iOS foundation and feature vertical slices
 
-- [x] Add XcodeGen project configuration for an iOS 17+ SwiftUI app.
-- [x] Add Swift 6 app entry point and dependency boundary.
-- [x] Add Keychain-backed access-token storage.
-- [x] Add typed URLSession authentication/current-user/logout requests.
-- [x] Add registration/login UI with server-aligned input validation.
-- [x] Add session restoration and retry on network failure.
-- [x] Add reusable Liquid Glass surface with compiler-gated iOS 26 glass effect and older-system material fallback.
-- [x] Add initial feed loading, text post publishing, like and save actions.
-- [x] Add story listing, image/MP4 upload, authenticated media loading, view/delete and 5/12/24/48-hour expiry selection.
-- [ ] Resolve current Xcode CI compile errors and obtain a green simulator build.
+- [x] Swift 6 / SwiftUI / iOS 17+ XcodeGen project.
+- [x] MVVM feature boundaries, URLSession API client and centralized errors.
+- [x] Keychain token storage, registration/login, restore, logout and retry.
+- [x] Liquid Glass surface with iOS 26 native effect and iOS 17–25 material fallback.
+- [x] Feed, server-backed sorting/recommendations, text and MP4 posts, playback, likes and saves.
+- [x] Comments, post hiding, reporting and blocking.
+- [x] Stories list/view, image and MP4 upload, deletion and 5/12/24/48-hour expiry.
+- [x] Profile, profile editing, follow/unfollow, follower/following lists and posts/videos/vibees tabs.
+- [x] Vibees vertical feed, pagination, authenticated MP4 playback, likes/saves and publishing.
+- [x] Search users/posts, notifications and mark-read.
+- [x] REST direct/group conversations and message send/history.
+- [x] Settings for sessions, blocked users, reports, badges and light/dark appearance.
+- [x] AI model catalogue, chat and backend text tools.
+- [x] Asset catalog/resource directories created; branded app icon still outstanding.
 
-## Phase 3 — remaining product features
+## Phase 3 — parity gaps and platform integration
 
-- [ ] Full feed sorting, search, recommendations and pagination.
-- [ ] Profile, profile editing, followers and following.
-- [ ] Vibees/reel feed, video composer and AVPlayer lifecycle.
-- [ ] Video post publishing and authenticated streaming.
-- [ ] Comments and notifications.
-- [ ] Messaging and WebSocket lifecycle.
-- [ ] Moderation, blocked users and reports.
-- [ ] Device accounts, badges and AI tools exposed by Android UI.
-- [ ] Appearance settings and profile color customization.
-- [ ] Photo-post support (blocked by missing backend route; requires separate approval).
+- [ ] Device account manager / account switching.
+- [ ] Full appearance parity: palettes, accent selection, glass intensity, compact mode and profile color controls.
+- [ ] Push notifications and real-time chat delivery.
+- [ ] Chat attachment/media features if present in Android UI.
+- [ ] More complete profile navigation from follower lists and all social entry points.
+- [ ] Feed pagination if backend support is added.
+- [ ] Photo posts and profile avatar/cover uploads (backend currently has no corresponding upload endpoints).
+- [ ] Full accessibility, localization and dynamic type audit.
 
 ## Phase 4 — quality and distribution
 
-- [x] Add API contract unit tests.
-- [x] Add macOS/Xcode CI workflow.
-- [x] Add manual TestFlight release workflow configuration.
-- [ ] Green simulator build and unit tests.
-- [ ] UI tests for critical user journeys.
-- [ ] Physical-device validation and TestFlight verification.
+- [x] XCTest API contract tests.
+- [x] XCUITest target and authentication screen smoke test.
+- [x] macOS/Xcode simulator build workflow.
+- [x] Manual TestFlight release workflow configuration.
+- [ ] Green build and tests for the latest repository HEAD.
+- [ ] UI test execution on the latest HEAD.
+- [ ] Physical-device validation.
+- [ ] Signed archive and TestFlight processing with owner-provided Apple credentials.
 
-## Current limitations / facts
+## Current verified constraints
 
-1. The current backend exposes text posts and MP4 video posts/reels. No image upload route or image media table was found in the audited backend.
-2. Stories accept multipart media uploads (JPEG, PNG, WebP or MP4), maximum 15 MiB, and expiration durations of 5, 12, 24 or 48 hours.
-3. The WebSocket handler authenticates and sends a `connected` frame, then reads frames; it does not currently broadcast feed/chat events.
-4. The repository does not contain Apple signing credentials. TestFlight upload requires the owner's Apple Developer and App Store Connect configuration.
-5. GitHub Actions successfully generates the Xcode project. Simulator compilation is being corrected from CI diagnostics; no green build is claimed yet.
+1. The audited backend supports text and MP4 video posts/reels. It has no post-image upload route or image media table.
+2. Story uploads support JPEG, PNG, WebP and MP4, up to 15 MiB, with 5, 12, 24 or 48-hour expiration.
+3. Profile avatar/cover fields accept URLs; no avatar/cover upload endpoint was found.
+4. The WebSocket endpoint authenticates and sends a `connected` acknowledgement, but does not broadcast chat/feed events. REST messaging is implemented; real-time delivery requires backend work.
+5. No production database, schema, or user data has been changed.
+6. No Apple signing credentials are stored in the repository. The TestFlight workflow requires the owner's Apple Developer team and App Store Connect API key.
+7. A previous revision passed simulator build and unit tests. The latest HEAD has not yet completed its own green CI run; no final IPA or TestFlight upload is claimed.
