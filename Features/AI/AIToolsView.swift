@@ -212,13 +212,13 @@ private struct AIToolSheet: View {
 
     private var title: String {
         switch tool {
-        case "translate": "Перевод"
-        case "summarize": "Суммаризация"
-        case "rewrite": "Переписать текст"
-        case "grammar": "Грамматика"
-        case "post": "Пост для соцсети"
-        case "smart_reply": "Варианты ответа"
-        default: "Поиск по контексту"
+        case "translate": return "Перевод"
+        case "summarize": return "Суммаризация"
+        case "rewrite": return "Переписать текст"
+        case "grammar": return "Грамматика"
+        case "post": return "Пост для соцсети"
+        case "smart_reply": return "Варианты ответа"
+        default: return "Поиск по контексту"
         }
     }
 }
