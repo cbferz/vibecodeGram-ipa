@@ -52,7 +52,8 @@ struct FeedView: View {
                                 onComments: { selectedCommentPost = post },
                                 onSave: { Task { await model.toggleSaved(for: post) } },
                                 onReport: { selectedReportPost = post },
-                                onBlock: { postToBlock = post }
+                                onBlock: { postToBlock = post },
+                                onHide: { Task { await model.hidePost(post) } }
                             )
                         }
                     }
@@ -185,6 +186,7 @@ private struct FeedPostCard: View {
     let onSave: () -> Void
     let onReport: () -> Void
     let onBlock: () -> Void
+    let onHide: () -> Void
 
     var body: some View {
         GlassSurface(cornerRadius: 22) {
@@ -208,6 +210,9 @@ private struct FeedPostCard: View {
                     Menu {
                         Button(action: onReport) {
                             Label("Пожаловаться", systemImage: "flag")
+                        }
+                        Button(action: onHide) {
+                            Label("Скрыть публикацию", systemImage: "eye.slash")
                         }
                         Button(role: .destructive, action: onBlock) {
                             Label("Заблокировать автора", systemImage: "hand.raised")
