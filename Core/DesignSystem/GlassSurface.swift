@@ -32,7 +32,7 @@ struct GlassSurface<Content: View>: View {
             .padding(16)
             .background(.ultraThinMaterial, in: shape)
             .overlay {
-                shape.strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+                shape.stroke(Color.primary.opacity(0.08), lineWidth: 1)
             }
             .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
     }
